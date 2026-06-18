@@ -1,6 +1,10 @@
 const express = require("express");
 const cors = require("cors");
-require("dotenv").config();
+require("dotenv").config({ quiet: true });
+
+const connectDB = require("./config/db");
+const validateEnv = require("./config/validateEnv");
+const authRoutes = require("./routes/authRoutes");
 
 const app = express();
 
@@ -11,8 +15,25 @@ app.get("/", (req, res) => {
   res.send("QueueLess API is running");
 });
 
-const PORT = process.env.PORT || 5000;
+app.use("/api/auth", authRoutes);
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+const PORT = process.env.PORT;
+
+const startServer = async () => {
+  try {
+    validateEnv();
+    console.log("✓ Environment variables loaded");
+
+    await connectDB();
+    console.log("✓ MongoDB connected");
+
+    app.listen(PORT, () => {
+      console.log(`✓ Server running on port ${PORT}`);
+    });
+  } catch (error) {
+    console.error(error.message);
+    process.exit(1);
+  }
+};
+
+startServer();

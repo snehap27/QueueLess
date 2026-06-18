@@ -1,25 +1,42 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+
+import { useAuth } from "../hooks/useAuth";
 
 function Register() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState("customer");
+  const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { register } = useAuth();
+  const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const redirectByRole = (userRole) => {
+    navigate(userRole === "owner" ? "/owner/dashboard" : "/customer/join");
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
+    setIsSubmitting(true);
 
-    console.log({
-      name,
-      email,
-      password,
-      role,
-    });
+    try {
+      const data = await register({ name, email, password, role });
+      redirectByRole(data.user.role);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <div>
       <h1>Register</h1>
+
+      {error && <p role="alert">{error}</p>}
 
       <form onSubmit={handleSubmit}>
         <input
@@ -59,7 +76,9 @@ function Register() {
 
         <br /><br />
 
-        <button type="submit">Register</button>
+        <button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? "Creating account..." : "Register"}
+        </button>
       </form>
     </div>
   );

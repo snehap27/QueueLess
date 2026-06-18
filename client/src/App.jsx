@@ -6,6 +6,7 @@ import Register from "./pages/Register";
 import OwnerDashboard from "./pages/OwnerDashboard";
 import JoinQueue from "./pages/JoinQueue";
 import TokenPage from "./pages/TokenPage";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
   return (
@@ -13,9 +14,11 @@ function App() {
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
-      <Route path="/owner/dashboard" element={<OwnerDashboard />} />
-      <Route path="/customer/join" element={<JoinQueue />} />
-      <Route path="/customer/token/:id" element={<TokenPage />} />
+      <Route element={<ProtectedRoute />}>
+        <Route path="/owner/dashboard" element={<OwnerDashboard />} />
+        <Route path="/customer/join" element={<JoinQueue />} />
+        <Route path="/customer/token/:id" element={<TokenPage />} />
+      </Route>
     </Routes>
   );
 }
