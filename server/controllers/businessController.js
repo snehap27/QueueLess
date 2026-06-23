@@ -4,16 +4,108 @@ const createBusiness = async (req, res) => {
   try {
     const { name, code } = req.body;
 
-    const business = await Business.create({ // Create a new business with the provided and stores the business in the database. The ownerId is set to the ID of the currently authenticated user (req.user._id).
+    const business = await Business.create({
       name,
       code,
-      ownerId: req.user._id
+      ownerId: req.user._id,
     });
 
-    res.status(201).json(business);
+    res.status(201).json({
+      message: "Business created successfully",
+      business,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+    });
+  }
+};
+
+const approveBusiness = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const business = await Business.findById(id);
+
+    if (!business) {
+      return res.status(404).json({
+        message: "Business not found",
+      });
+    }
+
+    business.isApproved = true;
+    await business.save();
+
+    res.status(200).json({
+      message: "Business approved successfully",
+      business,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+    });
+  }
+};
+
+const openQueue = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const business = await Business.findById(id);
+
+    if (!business) {
+      return res.status(404).json({ message: "Business not found" });
+    }
+
+    if (business.ownerId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: "Not your business" });
+    }
+
+    if (!business.isApproved) {
+      return res.status(400).json({ message: "Business not approved yet" });
+    }
+
+    business.queueOpen = true;
+    await business.save();
+
+    res.status(200).json({
+      message: "Queue opened",
+      business,
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-module.exports = { createBusiness };
+const closeQueue = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const business = await Business.findById(id);
+
+    if (!business) {
+      return res.status(404).json({ message: "Business not found" });
+    }
+
+    if (business.ownerId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: "Not your business" });
+    }
+
+    business.queueOpen = false;
+    await business.save();
+
+    res.status(200).json({
+      message: "Queue closed",
+      business,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = {
+  createBusiness,
+  approveBusiness,
+  openQueue,
+  closeQueue,
+};

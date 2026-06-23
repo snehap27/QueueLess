@@ -3,7 +3,7 @@ const generateToken = require("../utils/generateToken");
 
 const sendAuthResponse = (res, user) => {
   res.json({
-    token: generateToken(user._id),
+    token: generateToken(user),
     user: {
       id: user._id,
       name: user.name,
