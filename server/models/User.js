@@ -25,6 +25,10 @@ const userSchema = new mongoose.Schema(
       required: [true, "Role is required"],
       enum: ["owner", "customer"],
     },
+    isAdmin: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,
