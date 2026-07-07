@@ -72,14 +72,13 @@ const joinQueue = async (req, res) => {
 };
 
 // This function returns the current queue status for a business.
+
+
 const getQueueStatus = async (req, res) => {
   try {
     const { businessId } = req.params;
 
-    const queue = await Queue.findOne({ businessId }).populate(
-      "customers.customerId",
-      "name email"
-    );
+    const queue = await Queue.findOne({ businessId });
 
     if (!queue) {
       return res.status(404).json({
@@ -87,7 +86,43 @@ const getQueueStatus = async (req, res) => {
       });
     }
 
-    res.status(200).json(queue);
+    const business = await Business.findById(businessId);
+
+    if (!business) {
+      return res.status(404).json({
+        message: "Business not found",
+      });
+    }
+
+    const customer = queue.customers.find(
+      (c) => c.customerId.toString() === req.user._id.toString()
+    );
+
+    if (!customer) {
+      return res.status(404).json({
+        message: "You are not in this queue",
+      });
+    }
+
+    const peopleAhead = queue.customers.filter(
+      (c) =>
+        c.status === "waiting" &&
+        c.tokenNumber < customer.tokenNumber
+    ).length;
+
+    const currentServing =
+      queue.customers
+        .filter((c) => c.status === "served")
+        .sort((a, b) => b.tokenNumber - a.tokenNumber)[0]
+        ?.tokenNumber || 0;
+
+    res.status(200).json({
+      businessName: business.name,
+      tokenNumber: customer.tokenNumber,
+      status: customer.status,
+      peopleAhead,
+      currentServing,
+    });
   } catch (error) {
     res.status(500).json({
       message: error.message,
