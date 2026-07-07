@@ -102,10 +102,25 @@ const closeQueue = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+const getBusinesses = async (req, res) => {
+  try {
+    const businesses = await Business.find({
+      isApproved: true,
+    }).select("name code queueOpen currentToken");
+
+    res.status(200).json(businesses);
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+    });
+  }
+};
+
 
 module.exports = {
   createBusiness,
   approveBusiness,
   openQueue,
   closeQueue,
+  getBusinesses,
 };
