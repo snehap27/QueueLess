@@ -1,10 +1,8 @@
 // this file contains the logic for joining a queue for a business
-// It will check if the business exists, if the queue is open, 
-// and then add the customer to the queue with a token number.
 const Queue = require("../models/Queue");
 const Business = require("../models/Business");
 
-// This function will allow a customer to join the queue for a business.
+// Join a customer to the queue
 const joinQueue = async (req, res) => {
   try {
     const { businessId } = req.params;
@@ -23,7 +21,7 @@ const joinQueue = async (req, res) => {
       });
     }
 
-    let queue = await Queue.findOne({ businessId }); // await the queue for the business. If it doesn't exist, create a new one.
+    let queue = await Queue.findOne({ businessId });
 
     if (!queue) {
       queue = await Queue.create({
@@ -32,8 +30,6 @@ const joinQueue = async (req, res) => {
       });
     }
 
-    // Checks if current user already exists in queue with:
-    // status=waiting. If so, return an error message. This prevents a user from joining the same queue multiple times.
     const alreadyInQueue = queue.customers.find(
       (customer) =>
         customer.customerId.toString() === req.user._id.toString() &&
@@ -62,7 +58,7 @@ const joinQueue = async (req, res) => {
 
     res.status(200).json({
       message: "Joined queue successfully",
-      tokenNumber: business.currentToken, // return the token number to the customer
+      tokenNumber: business.currentToken,
     });
   } catch (error) {
     res.status(500).json({
@@ -71,26 +67,30 @@ const joinQueue = async (req, res) => {
   }
 };
 
-// This function returns the current queue status for a business.
-
-
+// Get queue status
 const getQueueStatus = async (req, res) => {
   try {
     const { businessId } = req.params;
-
-    const queue = await Queue.findOne({ businessId });
-
-    if (!queue) {
-      return res.status(404).json({
-        message: "Queue not found",
-      });
-    }
 
     const business = await Business.findById(businessId);
 
     if (!business) {
       return res.status(404).json({
         message: "Business not found",
+      });
+    }
+
+    const queue = await Queue.findOne({ businessId });
+
+    if (!queue) {
+      return res.status(200).json({
+        businessId,
+        businessName: business.name,
+        queueOpen: business.queueOpen,
+        currentToken: business.currentToken,
+        customers: [],
+        waitingCount: 0,
+        currentServing: null,
       });
     }
 
@@ -104,24 +104,32 @@ const getQueueStatus = async (req, res) => {
       });
     }
 
-    const peopleAhead = queue.customers.filter(
-      (c) =>
-        c.status === "waiting" &&
-        c.tokenNumber < customer.tokenNumber
+    const waitingCustomers = queue.customers.filter(
+      (c) => c.status === "waiting"
+    );
+
+    const servedCustomers = queue.customers.filter(
+      (c) => c.status === "served"
+    );
+
+    const peopleAhead = waitingCustomers.filter(
+      (c) => c.tokenNumber < customer.tokenNumber
     ).length;
 
-    const currentServing =
-      queue.customers
-        .filter((c) => c.status === "served")
-        .sort((a, b) => b.tokenNumber - a.tokenNumber)[0]
-        ?.tokenNumber || 0;
-
     res.status(200).json({
+      businessId,
       businessName: business.name,
+      queueOpen: business.queueOpen,
+      currentToken: business.currentToken,
+      customers: queue.customers,
+      waitingCount: waitingCustomers.length,
+      currentServing:
+        servedCustomers.length > 0
+          ? servedCustomers[servedCustomers.length - 1]
+          : null,
       tokenNumber: customer.tokenNumber,
       status: customer.status,
       peopleAhead,
-      currentServing,
     });
   } catch (error) {
     res.status(500).json({
@@ -130,9 +138,7 @@ const getQueueStatus = async (req, res) => {
   }
 };
 
-// this function will serve the next customer in the queue for a business.
-// works by finding the queue for the business, then finding the next customer with status "waiting" 
-// and changing their status to "served".
+// Serve next customer
 const serveNextCustomer = async (req, res) => {
   try {
     const { businessId } = req.params;
@@ -170,9 +176,8 @@ const serveNextCustomer = async (req, res) => {
   }
 };
 
-// exports the joinQueue, getQueueStatus, and serveNextCustomer functions to be used in other files
 module.exports = {
   joinQueue,
   getQueueStatus,
-  serveNextCustomer
+  serveNextCustomer,
 };

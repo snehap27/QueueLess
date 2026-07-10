@@ -4,20 +4,23 @@ require("dotenv").config({ quiet: true });
 
 const connectDB = require("./config/db");
 const validateEnv = require("./config/validateEnv");
+
 const authRoutes = require("./routes/authRoutes");
 const businessRoutes = require("./routes/businessRoutes");
+const queueRoutes = require("./routes/queueRoutes");   // <-- Add this
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
+
+app.use("/api/auth", authRoutes);
 app.use("/api/business", businessRoutes);
+app.use("/api/queue", queueRoutes);   // <-- Add this
 
 app.get("/", (req, res) => {
   res.send("QueueLess API is running");
 });
-
-app.use("/api/auth", authRoutes);
 
 const PORT = process.env.PORT;
 

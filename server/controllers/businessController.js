@@ -102,20 +102,30 @@ const closeQueue = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
 const getBusinesses = async (req, res) => {
   try {
-    const businesses = await Business.find({
-      isApproved: true,
-    }).select("name code queueOpen currentToken");
+    let filter = {};
 
-    res.status(200).json(businesses);
+    if (req.user.role === "owner") {
+      filter.ownerId = req.user._id;
+    } else {
+      filter.isApproved = true;
+    }
+
+    const businesses = await Business.find(filter).sort({
+      createdAt: -1,
+    });
+
+    res.status(200).json({
+      businesses,
+    });
   } catch (error) {
     res.status(500).json({
       message: error.message,
     });
   }
 };
-
 
 module.exports = {
   createBusiness,
