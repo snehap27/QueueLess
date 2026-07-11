@@ -14,3 +14,8 @@ export const joinQueue = (businessId, token) =>
     method: "POST",
     headers: authenticatedHeaders(token),
   });
+
+export const getQueueStatus = (businessId, token) =>
+  request(`/api/queue/${businessId}/status`, {
+    headers: authenticatedHeaders(token),
+  });
