@@ -1,9 +1,19 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Menu, X, Clock3 } from "lucide-react";
+
+import { useAuth } from "../hooks/useAuth";
 
 function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
+  const { isAuthenticated, loading, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    setIsOpen(false);
+    navigate("/");
+  };
 
   return (
     <header className="fixed left-0 right-0 top-0 z-50 border-b border-emerald-100/70 bg-white/90 backdrop-blur-xl">
@@ -22,18 +32,31 @@ function Navbar() {
         </Link>
 
         <div className="hidden items-center gap-3 md:flex">
-          <Link
-            to="/login"
-            className="rounded-full px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-emerald-50 hover:text-emerald-700"
-          >
-            Login
-          </Link>
-          <Link
-            to="/register"
-            className="rounded-full bg-emerald-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-emerald-500/25 transition hover:-translate-y-0.5 hover:bg-emerald-600"
-          >
-            Get Started
-          </Link>
+          {!loading &&
+            (isAuthenticated ? (
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="rounded-full px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-emerald-50 hover:text-emerald-700"
+              >
+                Logout
+              </button>
+            ) : (
+              <>
+                <Link
+                  to="/login"
+                  className="rounded-full px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-emerald-50 hover:text-emerald-700"
+                >
+                  Login
+                </Link>
+                <Link
+                  to="/register"
+                  className="rounded-full bg-emerald-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-emerald-500/25 transition hover:-translate-y-0.5 hover:bg-emerald-600"
+                >
+                  Get Started
+                </Link>
+              </>
+            ))}
         </div>
 
         <button
@@ -49,20 +72,33 @@ function Navbar() {
       {isOpen && (
         <div className="border-t border-emerald-100 bg-white px-5 pb-5 pt-2 shadow-xl shadow-emerald-950/5 md:hidden">
           <div className="mx-auto flex max-w-7xl flex-col gap-3">
-            <Link
-              to="/login"
-              className="rounded-2xl px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-emerald-50 hover:text-emerald-700"
-              onClick={() => setIsOpen(false)}
-            >
-              Login
-            </Link>
-            <Link
-              to="/register"
-              className="rounded-2xl bg-emerald-500 px-4 py-3 text-center text-sm font-semibold text-white shadow-lg shadow-emerald-500/20 transition hover:bg-emerald-600"
-              onClick={() => setIsOpen(false)}
-            >
-              Get Started
-            </Link>
+            {!loading &&
+              (isAuthenticated ? (
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="rounded-2xl px-4 py-3 text-left text-sm font-semibold text-slate-700 transition hover:bg-emerald-50 hover:text-emerald-700"
+                >
+                  Logout
+                </button>
+              ) : (
+                <>
+                  <Link
+                    to="/login"
+                    className="rounded-2xl px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-emerald-50 hover:text-emerald-700"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    Login
+                  </Link>
+                  <Link
+                    to="/register"
+                    className="rounded-2xl bg-emerald-500 px-4 py-3 text-center text-sm font-semibold text-white shadow-lg shadow-emerald-500/20 transition hover:bg-emerald-600"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    Get Started
+                  </Link>
+                </>
+              ))}
           </div>
         </div>
       )}

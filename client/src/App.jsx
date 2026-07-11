@@ -17,6 +17,7 @@ function App() {
       <Route element={<ProtectedRoute />}>
         <Route path="/owner/dashboard" element={<OwnerDashboard />} />
         <Route path="/customer/join" element={<JoinQueue />} />
+        <Route path="/customer/token" element={<TokenPage />} />
         <Route path="/customer/token/:id" element={<TokenPage />} />
       </Route>
     </Routes>
