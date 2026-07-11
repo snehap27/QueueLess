@@ -25,3 +25,14 @@ export const setQueueOpen = (businessId, shouldOpen, token) =>
     method: "PATCH",
     headers: authenticatedHeaders(token),
   });
+
+export const getQueue = (businessId, token) =>
+  request(`/api/queue/${businessId}`, {
+    headers: authenticatedHeaders(token),
+  });
+
+export const serveNextCustomer = (businessId, token) =>
+  request(`/api/queue/${businessId}/serve`, {
+    method: "PATCH",
+    headers: authenticatedHeaders(token),
+  });

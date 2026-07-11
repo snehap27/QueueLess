@@ -1,9 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { BarChart3, CheckCircle2, Clock3, Ticket, Users } from "lucide-react";
 
 import Navbar from "../components/Navbar";
 import { useAuth } from "../hooks/useAuth";
-import { getBusinesses, setQueueOpen } from "../services/queueService";
+import {
+  getBusinesses,
+  getQueue,
+  serveNextCustomer,
+  setQueueOpen,
+} from "../services/queueService";
 
 const getErrorMessage = (error) => {
   if (error instanceof TypeError) {
@@ -14,7 +19,24 @@ const getErrorMessage = (error) => {
     return "Your session has expired. Please log in again.";
   }
 
-  return error.message || "Unable to load your business. Please try again.";
+  return error.message || "Something went wrong. Please try again.";
+};
+
+const formatJoinedTime = (joinedAt) => {
+  if (!joinedAt || Number.isNaN(new Date(joinedAt).getTime())) {
+    return "--";
+  }
+
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(joinedAt));
+};
+
+const statusBadgeClasses = {
+  waiting: "bg-amber-50 text-amber-700",
+  served: "bg-emerald-50 text-emerald-700",
+  skipped: "bg-slate-100 text-slate-600",
 };
 
 function OwnerDashboard() {
@@ -23,6 +45,10 @@ function OwnerDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [isUpdatingQueue, setIsUpdatingQueue] = useState(false);
+  const [customers, setCustomers] = useState([]);
+  const [queueLoading, setQueueLoading] = useState(false);
+  const [isServing, setIsServing] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
 
   useEffect(() => {
     let isMounted = true;
@@ -32,7 +58,8 @@ function OwnerDashboard() {
       setError("");
 
       try {
-        const businesses = await getBusinesses(token);
+        const data = await getBusinesses(token);
+        const businesses = Array.isArray(data) ? data : [data];
         const ownedBusiness = businesses.find(
           (item) => item.ownerId && item.ownerId === user?.id
         );
@@ -58,6 +85,43 @@ function OwnerDashboard() {
     };
   }, [token, user?.id]);
 
+  useEffect(() => {
+    if (!business?._id) {
+      return undefined;
+    }
+
+    let isMounted = true;
+
+    const loadQueue = async () => {
+      setQueueLoading(true);
+
+      try {
+        const queue = await getQueue(business._id, token);
+        if (isMounted) {
+          setCustomers(queue.customers || []);
+        }
+      } catch (requestError) {
+        if (isMounted) {
+          if (/queue not found/i.test(requestError.message)) {
+            setCustomers([]);
+          } else {
+            setError(getErrorMessage(requestError));
+          }
+        }
+      } finally {
+        if (isMounted) {
+          setQueueLoading(false);
+        }
+      }
+    };
+
+    loadQueue();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [business?._id, token]);
+
   const handleQueueToggle = async () => {
     if (!business || isUpdatingQueue) {
       return;
@@ -75,6 +139,46 @@ function OwnerDashboard() {
       setIsUpdatingQueue(false);
     }
   };
+
+  const refreshQueue = async () => {
+    if (!business) {
+      return;
+    }
+
+    const queue = await getQueue(business._id, token);
+    setCustomers(queue.customers || []);
+  };
+
+  const handleServeNextCustomer = async () => {
+    if (!business || isServing) {
+      return;
+    }
+
+    setIsServing(true);
+    setError("");
+    setSuccessMessage("");
+
+    try {
+      await serveNextCustomer(business._id, token);
+      await refreshQueue();
+      setSuccessMessage("The next customer has been served.");
+    } catch (requestError) {
+      setError(getErrorMessage(requestError));
+    } finally {
+      setIsServing(false);
+    }
+  };
+
+  const sortedCustomers = useMemo(
+    () => [...customers].sort((a, b) => a.tokenNumber - b.tokenNumber),
+    [customers]
+  );
+  const waitingCustomers = customers.filter(
+    (customer) => customer.status === "waiting"
+  ).length;
+  const servedCustomers = customers.filter(
+    (customer) => customer.status === "served"
+  ).length;
 
   return (
     <div className="min-h-screen bg-white">
@@ -105,6 +209,15 @@ function OwnerDashboard() {
               className="mt-8 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-medium text-red-700"
             >
               {error}
+            </p>
+          )}
+
+          {successMessage && (
+            <p
+              role="status"
+              className="mt-8 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700"
+            >
+              {successMessage}
             </p>
           )}
 
@@ -167,7 +280,9 @@ function OwnerDashboard() {
                   <p className="mt-5 text-sm font-semibold text-slate-600">
                     Waiting Customers
                   </p>
-                  <p className="mt-2 text-3xl font-extrabold text-slate-950">--</p>
+                  <p className="mt-2 text-3xl font-extrabold text-slate-950">
+                    {waitingCustomers}
+                  </p>
                 </article>
                 <article className="rounded-3xl border border-emerald-100 bg-white p-6 shadow-lg shadow-emerald-950/5">
                   <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
@@ -176,7 +291,9 @@ function OwnerDashboard() {
                   <p className="mt-5 text-sm font-semibold text-slate-600">
                     Served Today
                   </p>
-                  <p className="mt-2 text-3xl font-extrabold text-slate-950">--</p>
+                  <p className="mt-2 text-3xl font-extrabold text-slate-950">
+                    {servedCustomers}
+                  </p>
                 </article>
                 <article className="rounded-3xl border border-emerald-100 bg-white p-6 shadow-lg shadow-emerald-950/5">
                   <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
@@ -192,13 +309,88 @@ function OwnerDashboard() {
               </section>
 
               <section className="mt-8 rounded-3xl border border-emerald-100 bg-white p-6 shadow-lg shadow-emerald-950/5 sm:p-8">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
-                  <Clock3 size={24} strokeWidth={2.2} />
+                <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
+                      <Clock3 size={24} strokeWidth={2.2} />
+                    </div>
+                    <h2 className="mt-5 text-xl font-bold text-slate-950">Live Queue</h2>
+                    <p className="mt-2 leading-7 text-slate-600">
+                      Customers are shown in token order.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleServeNextCustomer}
+                    disabled={isServing || waitingCustomers === 0}
+                    className="inline-flex min-w-48 items-center justify-center rounded-full bg-emerald-500 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-500/25 transition hover:-translate-y-0.5 hover:bg-emerald-600 disabled:cursor-not-allowed disabled:transform-none disabled:opacity-70"
+                  >
+                    {isServing ? "Serving..." : "Serve Next Customer"}
+                  </button>
                 </div>
-                <h2 className="mt-5 text-xl font-bold text-slate-950">Live Queue</h2>
-                <p className="mt-3 leading-7 text-slate-600">
-                  Live queue will appear once queue management APIs are connected.
-                </p>
+
+                {queueLoading ? (
+                  <div className="mt-8 space-y-3 animate-pulse">
+                    {[1, 2, 3].map((item) => (
+                      <div key={item} className="h-14 rounded-2xl bg-emerald-50" />
+                    ))}
+                  </div>
+                ) : sortedCustomers.length === 0 ? (
+                  <p className="mt-8 rounded-2xl bg-emerald-50 px-4 py-4 text-sm font-medium text-slate-600">
+                    No customers are currently in the queue.
+                  </p>
+                ) : (
+                  <>
+                    {waitingCustomers === 0 && (
+                      <p className="mt-8 rounded-2xl bg-emerald-50 px-4 py-4 text-sm font-medium text-slate-600">
+                        No customers are waiting.
+                      </p>
+                    )}
+                    <div className="mt-8 overflow-x-auto">
+                      <table className="min-w-full text-left">
+                        <thead className="border-b border-emerald-100 text-xs font-bold uppercase tracking-wider text-slate-500">
+                          <tr>
+                            <th className="px-4 py-3">Token</th>
+                            <th className="px-4 py-3">Customer</th>
+                            <th className="px-4 py-3">Email</th>
+                            <th className="px-4 py-3">Status</th>
+                            <th className="px-4 py-3">Joined</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-emerald-50 text-sm">
+                          {sortedCustomers.map((customer) => (
+                            <tr key={customer._id || customer.tokenNumber}>
+                              <td className="whitespace-nowrap px-4 py-4 font-bold text-emerald-700">
+                                #{customer.tokenNumber}
+                              </td>
+                              <td className="whitespace-nowrap px-4 py-4 font-semibold text-slate-900">
+                                {customer.customerId?.name || "--"}
+                              </td>
+                              <td className="whitespace-nowrap px-4 py-4 text-slate-600">
+                                {customer.customerId?.email || "--"}
+                              </td>
+                              <td className="whitespace-nowrap px-4 py-4">
+                                <span
+                                  className={`rounded-full px-3 py-1 text-xs font-bold ${
+                                    statusBadgeClasses[customer.status] ||
+                                    "bg-slate-100 text-slate-600"
+                                  }`}
+                                >
+                                  {customer.status
+                                    ? `${customer.status.charAt(0).toUpperCase()}${customer.status.slice(1)}`
+                                    : "Unknown"}
+                                </span>
+                              </td>
+                              <td className="whitespace-nowrap px-4 py-4 text-slate-600">
+                                {formatJoinedTime(customer.joinedAt)}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                )}
               </section>
             </>
           ) : (
