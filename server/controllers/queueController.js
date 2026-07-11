@@ -137,6 +137,20 @@ const serveNextCustomer = async (req, res) => {
   try {
     const { businessId } = req.params;
 
+    const business = await Business.findById(businessId);
+
+    if (!business) {
+      return res.status(404).json({
+        message: "Business not found",
+      });
+    }
+
+    if (business.ownerId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        message: "Not your business",
+      });
+    }
+
     const queue = await Queue.findOne({ businessId });
 
     if (!queue) {
@@ -169,10 +183,48 @@ const serveNextCustomer = async (req, res) => {
     });
   }
 };
+const getQueue = async (req, res) => {
+  try {
+    const { businessId } = req.params;
+
+    const business = await Business.findById(businessId);
+
+    if (!business) {
+      return res.status(404).json({
+        message: "Business not found",
+      });
+    }
+
+    if (business.ownerId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        message: "Not your business",
+      });
+    }
+
+    const queue = await Queue.findOne({ businessId }).populate(
+      "customers.customerId",
+      "name email"
+    );
+
+    if (!queue) {
+      return res.status(404).json({
+        message: "Queue not found",
+      });
+    }
+
+    res.status(200).json(queue);
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+    });
+  }
+};
 
 // exports the joinQueue, getQueueStatus, and serveNextCustomer functions to be used in other files
+
 module.exports = {
   joinQueue,
   getQueueStatus,
-  serveNextCustomer
+  getQueue,
+  serveNextCustomer,
 };

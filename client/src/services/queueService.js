@@ -19,3 +19,9 @@ export const getQueueStatus = (businessId, token) =>
   request(`/api/queue/${businessId}/status`, {
     headers: authenticatedHeaders(token),
   });
+
+export const setQueueOpen = (businessId, shouldOpen, token) =>
+  request(`/api/business/${businessId}/${shouldOpen ? "open" : "close"}`, {
+    method: "PATCH",
+    headers: authenticatedHeaders(token),
+  });
