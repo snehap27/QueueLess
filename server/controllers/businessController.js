@@ -8,6 +8,8 @@ const createBusiness = async (req, res) => {
       name,
       code,
       ownerId: req.user._id,
+      isApproved: true, // Set to true automatically for testing purposes
+      // TODO: Replace with admin approval, this will be set to false by default
     });
 
     res.status(201).json({
@@ -68,6 +70,17 @@ const openQueue = async (req, res) => {
     business.queueOpen = true;
     await business.save();
 
+    const io = req.app.get("io"); // Get the Socket.IO server instance from the Express app
+
+    console.log("Emitting queueUpdated to:", `business:${business._id}`);
+    
+    console.log(
+      "Clients in room:",
+      io.sockets.adapter.rooms.get(`business:${business._id}`)
+    );
+
+    io.to(`business:${business._id}`).emit("queueUpdated");
+
     res.status(200).json({
       message: "Queue opened",
       business,
@@ -94,6 +107,10 @@ const closeQueue = async (req, res) => {
     business.queueOpen = false;
     await business.save();
 
+    const io = req.app.get("io"); // Get the Socket.IO server instance from the Express app
+    
+    io.to(`business:${business._id}`).emit("queueUpdated");
+
     res.status(200).json({
       message: "Queue closed",
       business,
@@ -102,10 +119,25 @@ const closeQueue = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+const getBusinesses = async (req, res) => {
+  try {
+    const businesses = await Business.find({
+      isApproved: true,
+    }).select("name code queueOpen currentToken ownerId");
+
+    res.status(200).json(businesses);
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+    });
+  }
+};
+
 
 module.exports = {
   createBusiness,
   approveBusiness,
   openQueue,
   closeQueue,
+  getBusinesses,
 };

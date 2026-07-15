@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Routes, Route } from "react-router-dom";
 
 import Home from "./pages/Home";
@@ -8,15 +9,30 @@ import JoinQueue from "./pages/JoinQueue";
 import TokenPage from "./pages/TokenPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 
+import socket from "./socket/socket";
+
 function App() {
+  // Establish a connection to the Socket.IO server when the component mounts
+  useEffect(() => {
+    socket.on("connect", () => {
+      console.log("Connected:", socket.id);
+    });
+
+    return () => {
+      socket.off("connect");
+    };
+  }, []);
+
   return (
     <Routes>
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+
       <Route element={<ProtectedRoute />}>
         <Route path="/owner/dashboard" element={<OwnerDashboard />} />
         <Route path="/customer/join" element={<JoinQueue />} />
+        <Route path="/customer/token" element={<TokenPage />} />
         <Route path="/customer/token/:id" element={<TokenPage />} />
       </Route>
     </Routes>
