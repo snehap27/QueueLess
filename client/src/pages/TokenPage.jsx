@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 import { Clock3, Hash, Ticket, Users } from "lucide-react";
 
 import Navbar from "../components/Navbar";
 import { useAuth } from "../hooks/useAuth";
 import { getQueueStatus } from "../services/queueService";
+import socket from "../socket/socket";
 
 const getErrorMessage = (error) => {
   if (error instanceof TypeError) {
@@ -21,12 +22,37 @@ const getErrorMessage = (error) => {
 const formatStatus = (status) =>
   status ? `${status.charAt(0).toUpperCase()}${status.slice(1)}` : "Unknown";
 
+// Storage key for the token page data
+const TOKEN_PAGE_STORAGE_KEY = "queueless_customer_token_page";
+
+const getStoredTokenPage = () => {
+  try {
+    const stored = localStorage.getItem(TOKEN_PAGE_STORAGE_KEY);
+    return stored ? JSON.parse(stored) : null;
+  } catch {
+    localStorage.removeItem(TOKEN_PAGE_STORAGE_KEY);
+    return null;
+  }
+};
+
+const saveStoredTokenPage = (data) => {
+  try {
+    localStorage.setItem(TOKEN_PAGE_STORAGE_KEY, JSON.stringify(data));
+  } catch {
+    // ignore storage errors
+  }
+};
+
 function TokenPage() {
   const { token } = useAuth();
   const location = useLocation();
-  const businessId = location.state?.businessId;
+  const { id: routeBusinessId } = useParams();
+  const storedTokenPage = getStoredTokenPage();
+  const initialBusinessId =
+    location.state?.businessId || routeBusinessId || storedTokenPage?.businessId;
+  const [businessId, setBusinessId] = useState(initialBusinessId);
   const [queueStatus, setQueueStatus] = useState(null);
-  const [loading, setLoading] = useState(Boolean(businessId));
+  const [loading, setLoading] = useState(Boolean(initialBusinessId));
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -34,9 +60,16 @@ function TokenPage() {
       return undefined;
     }
 
+    saveStoredTokenPage({ businessId });
     let isMounted = true;
 
-    const loadQueueStatus = async () => {
+    const loadQueueStatus = async (showLoading = false) => {
+      if (showLoading && isMounted) {
+        setLoading(true);
+        setQueueStatus(null);
+        setError("");
+      }
+
       try {
         const data = await getQueueStatus(businessId, token);
         if (isMounted) {
@@ -48,18 +81,28 @@ function TokenPage() {
           setError(getErrorMessage(requestError));
         }
       } finally {
-        if (isMounted) {
+        if (showLoading && isMounted) {
           setLoading(false);
         }
       }
     };
 
-    loadQueueStatus();
-    const refreshInterval = window.setInterval(loadQueueStatus, 10_000);
+    // Load initial queue status with a loading skeleton
+    loadQueueStatus(true);
+
+    // Join the Socket.IO room for the business to receive real-time updates
+    socket.emit("joinBusinessRoom", businessId);
+
+    // Listen for queue updates and refresh the status
+    const handleQueueUpdated = () => {
+      loadQueueStatus(false);
+    };
+
+    socket.on("queueUpdated", handleQueueUpdated);
 
     return () => {
       isMounted = false;
-      window.clearInterval(refreshInterval);
+      socket.off("queueUpdated", handleQueueUpdated);
     };
   }, [businessId, token]);
 
@@ -161,7 +204,7 @@ function TokenPage() {
                   </div>
 
                   <p className="mt-6 text-center text-sm text-slate-500">
-                    Queue information refreshes automatically every 10 seconds.
+                    Queue information updates in real-time.
                   </p>
                 </>
               ) : null}

@@ -18,13 +18,22 @@ const server = http.createServer(app); // Create an HTTP server using the Expres
 
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:5173", // Allow requests from this origin
+    origin: ["http://localhost:5173", "http://localhost:5174"], // Allow requests from both ports during development
     methods: ["GET", "POST"], // Allow only GET and POST methods
   },
 });
 
+app.set("io", io); // Attach the Socket.IO server instance to the Express app for later use
+
 io.on("connection", (socket) => {
   console.log(`Client connected: ${socket.id}`);
+
+  socket.on("joinBusinessRoom", (businessId) => { // Listen for the "joinBusinessRoom" event from the client
+    const room = `business:${businessId}`;
+
+    socket.join(room);
+    console.log(`${socket.id} joined room: ${room}`);
+  });
 
   socket.on("disconnect", () => {
     console.log(`Client disconnected: ${socket.id}`);

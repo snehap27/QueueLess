@@ -12,6 +12,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import socket from "./socket/socket";
 
 function App() {
+  // Establish a connection to the Socket.IO server when the component mounts
   useEffect(() => {
     socket.on("connect", () => {
       console.log("Connected:", socket.id);

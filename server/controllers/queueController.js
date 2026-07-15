@@ -60,6 +60,11 @@ const joinQueue = async (req, res) => {
     await queue.save();
     await business.save();
 
+    // Emit a "queueUpdated" event to all clients in the business room to notify them of the queue update.
+    const io = req.app.get("io");
+
+    io.to(`business:${business._id}`).emit("queueUpdated");
+
     res.status(200).json({
       message: "Joined queue successfully",
       tokenNumber: business.currentToken, // return the token number to the customer
@@ -173,6 +178,10 @@ const serveNextCustomer = async (req, res) => {
 
     await queue.save();
 
+    const io = req.app.get("io"); // Get the Socket.IO server instance from the Express app
+
+    io.to(`business:${business._id}`).emit("queueUpdated");
+
     res.status(200).json({
       message: "Next customer served",
       servedCustomer: nextCustomer,
@@ -183,6 +192,7 @@ const serveNextCustomer = async (req, res) => {
     });
   }
 };
+
 const getQueue = async (req, res) => {
   try {
     const { businessId } = req.params;
