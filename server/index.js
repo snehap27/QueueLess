@@ -16,10 +16,16 @@ const app = express();
 
 const server = http.createServer(app); // Create an HTTP server using the Express app
 
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:5174",
+  process.env.CLIENT_URL,
+];
+
 const io = new Server(server, {
   cors: {
-    origin: ["http://localhost:5173", "http://localhost:5174"], // Allow requests from both ports during development
-    methods: ["GET", "POST"], // Allow only GET and POST methods
+    origin: allowedOrigins,
+    methods: ["GET", "POST"],
   },
 });
 
@@ -40,7 +46,13 @@ io.on("connection", (socket) => {
   });
 });
 
-app.use(cors());
+app.use(
+  cors({
+    origin: allowedOrigins,
+    credentials: true,
+  })
+);
+
 app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/business", businessRoutes);
