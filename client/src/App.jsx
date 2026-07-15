@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Routes, Route } from "react-router-dom";
 
 import Home from "./pages/Home";
@@ -8,12 +9,25 @@ import JoinQueue from "./pages/JoinQueue";
 import TokenPage from "./pages/TokenPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 
+import socket from "./socket/socket";
+
 function App() {
+  useEffect(() => {
+    socket.on("connect", () => {
+      console.log("Connected:", socket.id);
+    });
+
+    return () => {
+      socket.off("connect");
+    };
+  }, []);
+
   return (
     <Routes>
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+
       <Route element={<ProtectedRoute />}>
         <Route path="/owner/dashboard" element={<OwnerDashboard />} />
         <Route path="/customer/join" element={<JoinQueue />} />
