@@ -8,6 +8,8 @@ const createBusiness = async (req, res) => {
       name,
       code,
       ownerId: req.user._id,
+      isApproved: true, // Set to true automatically for testing purposes
+      // TODO: Replace with admin approval, this will be set to false by default
     });
 
     res.status(201).json({
