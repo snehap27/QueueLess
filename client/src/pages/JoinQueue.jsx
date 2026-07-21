@@ -71,7 +71,7 @@ function JoinQueue() {
 
     try {
       const { tokenNumber } = await joinQueue(businessId, token);
-      navigate("/customer/token", {
+      navigate(`/customer/token/${businessId}`, {
         state: { businessId, tokenNumber },
       });
     } catch (requestError) {

@@ -1,9 +1,11 @@
 import { request } from "./api";
 
+// Helper function to create headers with the Authorization token
 const authenticatedHeaders = (token) => ({
   Authorization: `Bearer ${token}`,
 });
 
+// API functions for interacting with the queue and business endpoints
 export const getBusinesses = (token) =>
   request("/api/business", {
     headers: authenticatedHeaders(token),
@@ -38,6 +40,7 @@ export const setQueueOpen = (businessId, shouldOpen, token) =>
     headers: authenticatedHeaders(token),
   });
 
+// getQueue and serveNextCustomer are owner APIs, so they require authentication and the user must be the owner of the business.
 export const getQueue = (businessId, token) =>
   request(`/api/queue/${businessId}`, {
     headers: authenticatedHeaders(token),

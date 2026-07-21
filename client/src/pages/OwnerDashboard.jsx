@@ -10,7 +10,15 @@ import {
   serveNextCustomer,
   setQueueOpen,
 } from "../services/queueService";
+import { useEffect, useState } from "react";
+import { BarChart3, CheckCircle2, Clock3, Ticket, Users, Zap } from "lucide-react";
 
+import Navbar from "../components/Navbar";
+import { useAuth } from "../hooks/useAuth";
+import { getBusinesses, setQueueOpen, getQueue, serveNextCustomer } from "../services/queueService";
+import socket from "../socket/socket";
+
+// Helper function to get a user-friendly error message based on the error type or message
 const getErrorMessage = (error) => {
   if (error instanceof TypeError) {
     return "Unable to connect to the server. Please check your connection and try again.";
@@ -40,6 +48,7 @@ const statusBadgeClasses = {
   skipped: "bg-slate-100 text-slate-600",
 };
 
+// OwnerDashboard component that displays the owner's dashboard for managing their business queue
 function OwnerDashboard() {
   const { token } = useAuth();
   const [business, setBusiness] = useState(null);
@@ -54,12 +63,14 @@ function OwnerDashboard() {
   const [businessForm, setBusinessForm] = useState({ name: "", code: "" });
   const [isCreatingBusiness, setIsCreatingBusiness] = useState(false);
 
-  useEffect(() => {
-    let isMounted = true;
+  const queueCustomers = queue?.customers ?? [];
+  const waitingCustomers = queueCustomers.filter((customer) => customer.status === "waiting");
+  const servedCustomers = queueCustomers.filter((customer) => customer.status === "served");
+  const hasWaitingCustomers = waitingCustomers.length > 0;
 
-    const loadBusiness = async () => {
-      setLoading(true);
-      setError("");
+  // Function to load the business information for the logged-in owner
+  const loadBusiness = async (isMounted = true) => {
+    setError("");
 
       try {
         if (isMounted) {
@@ -76,14 +87,41 @@ function OwnerDashboard() {
             setError(getErrorMessage(requestError));
           }
         }
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
       }
-    };
+    } finally {
+      if (isMounted) {
+        setQueueLoading(false);
+      }
+    }
+  };
+  
+  useEffect(() => {
+    console.log("Business state changed:", business);
+  }, [business]);
 
-    loadBusiness();
+  // Effect to load the queue whenever the business changes
+  useEffect(() => {
+    if (!business?._id) return;
+    
+    let isMounted = true;
+    loadQueue(business._id, isMounted);
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [business?._id, token]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    // Fetch the business information when the component mounts or when the token or user ID changes
+    const fetchBusiness = async () => {
+      setLoading(true);
+      await loadBusiness(isMounted);
+      setLoading(false);
+    }
+
+    fetchBusiness();
 
     return () => {
       isMounted = false;
@@ -147,14 +185,36 @@ function OwnerDashboard() {
     };
   }, [business?._id, token]);
 
+  useEffect(() => {
+    if (!business?._id) return;
+
+    socket.emit("joinBusinessRoom", business._id); // Join the Socket.IO room for the specific business to receive real-time updates
+
+    // async function to handle the "queueUpdated" event from the server and reload the business information
+    // await loadBusiness() is called to refresh the business data when the queue is updated
+    const handleQueueUpdated = async () => {
+      console.log("Queue updated!");
+      await Promise.all([loadBusiness(), loadQueue(business._id)]); // Reload both business and queue information
+      console.log("Business after refresh:", business);
+    };
+
+    socket.on("queueUpdated", handleQueueUpdated);
+
+    return () => {
+      socket.off("queueUpdated", handleQueueUpdated);
+    };
+  }, [business?._id]);
+
+  // Function to handle the opening or closing of the queue for the business
   const handleQueueToggle = async () => {
     if (!business || isUpdatingQueue) {
       return;
     }
 
-    setIsUpdatingQueue(true);
+    setIsUpdatingQueue(true); // Set the state to indicate that the queue update is in progress
     setError("");
 
+    // Toggle the queue open/close state for the business and update the business state accordingly
     try {
       const data = await setQueueOpen(business._id, !business.queueOpen, token);
       setBusiness(data.business);
