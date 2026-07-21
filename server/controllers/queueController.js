@@ -57,12 +57,19 @@ const joinQueue = async (req, res) => {
 
     queue.customers.push(newCustomer);
 
+    const position = queue.customers.filter(
+      (customer) => customer.status === "waiting"
+    ).length;
+    const estimatedWait = (position - 1) * business.averageServiceTime;
+
     await queue.save();
     await business.save();
 
     res.status(200).json({
       message: "Joined queue successfully",
       tokenNumber: business.currentToken, // return the token number to the customer
+      position,
+      estimatedWait,
     });
   } catch (error) {
     res.status(500).json({
@@ -116,11 +123,16 @@ const getQueueStatus = async (req, res) => {
         .sort((a, b) => b.tokenNumber - a.tokenNumber)[0]
         ?.tokenNumber || 0;
 
+    const position = peopleAhead + 1;
+    const estimatedWait = peopleAhead * business.averageServiceTime;
+
     res.status(200).json({
       businessName: business.name,
       tokenNumber: customer.tokenNumber,
       status: customer.status,
       peopleAhead,
+      position,
+      estimatedWait,
       currentServing,
     });
   } catch (error) {

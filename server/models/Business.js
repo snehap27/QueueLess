@@ -26,6 +26,10 @@ const businessSchema = new mongoose.Schema({
   currentToken: {
     type: Number,
     default: 0
+  },
+  averageServiceTime: {
+    type: Number,
+    default: 5
   }
 }, { timestamps: true });
 

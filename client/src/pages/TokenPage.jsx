@@ -112,7 +112,7 @@ function TokenPage() {
                 <div className="animate-pulse">
                   <div className="mx-auto h-4 w-40 rounded bg-emerald-100" />
                   <div className="mx-auto mt-5 h-28 w-40 rounded-3xl bg-emerald-100" />
-                  <div className="mt-10 grid gap-4 sm:grid-cols-2">
+                  <div className="mt-10 grid gap-4 sm:grid-cols-3">
                     <div className="h-24 rounded-2xl bg-emerald-50" />
                     <div className="h-24 rounded-2xl bg-emerald-50" />
                   </div>
@@ -156,6 +156,17 @@ function TokenPage() {
                       </div>
                       <p className="mt-4 text-3xl font-extrabold text-slate-950">
                         {queueStatus.currentServing ?? "—"}
+                      </p>
+                    </div>
+                    <div className="rounded-2xl bg-emerald-50 p-5">
+                      <div className="flex items-center gap-3 text-emerald-600">
+                        <Clock3 size={20} />
+                        <span className="text-sm font-bold">Estimated Wait</span>
+                      </div>
+                      <p className="mt-4 text-3xl font-extrabold text-slate-950">
+                        {queueStatus.estimatedWait === 0
+                          ? "You're next!"
+                          : `${queueStatus.estimatedWait} minutes`}
                       </p>
                     </div>
                   </div>
