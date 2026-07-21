@@ -397,7 +397,7 @@ JWT_SECRET=your_secret_key
 
 ---
 
-# 👩‍💻 Author
+# 👩‍💻 Contributors
 
 **Akanksha Singh**
 
@@ -407,7 +407,15 @@ Indira Gandhi Delhi Technical University for Women (IGDTUW)
 
 GitHub: https://github.com/Akanksha-Singh27
 
-LinkedIn: https://linkedin.com/in/www.linkedin.com/in/akanksha-singh-858020327/
+LinkedIn: https://www.linkedin.com/in/akanksha-singh-858020327/
+
+### Ananya Satyapal
+- GitHub: https://github.com/...
+- LinkedIn: https://linkedin.com/in/...
+
+### Sneha Pandey
+- GitHub: https://github.com/...
+- LinkedIn: https://linkedin.com/in/...
 
 ---
 
