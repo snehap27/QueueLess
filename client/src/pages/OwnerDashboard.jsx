@@ -98,15 +98,11 @@ function OwnerDashboard() {
     setError("");
 
     try {
-      const data = await createBusiness(businessForm, token);
+      await createBusiness(businessForm, token);
       const ownerBusiness = await getMyBusiness(token);
       setBusiness(ownerBusiness);
       setNoBusiness(false);
-      setSuccessMessage(
-        data.business.isApproved
-          ? "Your business has been created successfully."
-          : "Your business has been created and is awaiting admin approval."
-      );
+      setSuccessMessage("Your business has been created successfully.");
     } catch (requestError) {
       setError(getErrorMessage(requestError));
     } finally {
@@ -284,24 +280,17 @@ function OwnerDashboard() {
                     <p className="mt-3 text-sm font-medium text-slate-500">
                       Business code: {business.code}
                     </p>
-                    {!business.isApproved && (
-                      <p className="mt-3 text-sm font-medium text-amber-700">
-                        Your business has been created and is awaiting admin approval.
-                      </p>
-                    )}
                   </div>
 
                   <button
                     type="button"
                     onClick={handleQueueToggle}
-                    disabled={isUpdatingQueue || !business.isApproved}
+                    disabled={isUpdatingQueue}
                     className="inline-flex min-w-36 items-center justify-center rounded-full bg-emerald-500 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-500/25 transition hover:-translate-y-0.5 hover:bg-emerald-600 disabled:cursor-not-allowed disabled:transform-none disabled:opacity-70"
                   >
                     {isUpdatingQueue
                       ? "Updating..."
-                      : !business.isApproved
-                        ? "Awaiting Approval"
-                        : business.queueOpen
+                      : business.queueOpen
                         ? "Close Queue"
                         : "Open Queue"}
                   </button>

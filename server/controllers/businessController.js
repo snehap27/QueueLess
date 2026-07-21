@@ -2,14 +2,9 @@ const Business = require("../models/Business");
 
 
 const createBusiness = async (req, res) => {
-  console.log(req.headers);
-  console.log(req.body);
+ 
 
-  if (!req.body) {
-    return res.status(400).json({
-      message: "Request body is missing",
-    });
-  }
+  
   try {
     const { name, code } = req.body;
 
@@ -17,6 +12,7 @@ const createBusiness = async (req, res) => {
       name,
       code,
       ownerId: req.user._id,
+      isApproved: true,
     });
 
     res.status(201).json({
