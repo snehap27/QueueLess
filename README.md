@@ -327,7 +327,7 @@ Queue state is derived from customer statuses instead of maintaining multiple sy
 ## Clone Repository
 
 ```bash
-git clone https://github.com/<your-username>/QueueLess.git
+git clone https://github.com/Akanksha-Singh27/QueueLess.git
 
 cd QueueLess
 ```
@@ -405,9 +405,9 @@ B.Tech Electronics & Communication Engineering
 
 Indira Gandhi Delhi Technical University for Women (IGDTUW)
 
-GitHub: https://github.com/<Akanksha-Singh27>
+GitHub: https://github.com/Akanksha-Singh27
 
-LinkedIn: https://linkedin.com/in/<www.linkedin.com/in/akanksha-singh-858020327>
+LinkedIn: https://linkedin.com/in/www.linkedin.com/in/akanksha-singh-858020327
 
 ---
 
