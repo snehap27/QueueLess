@@ -47,6 +47,12 @@ jest.mock('../models/Business', () => {
         },
       };
     },
+    findOne: async ({ ownerId }) => {
+      for (const business of businesses.values()) {
+        if (business.ownerId === ownerId) return business;
+      }
+      return null;
+    },
     __reset: () => {
       businesses.clear();
       businessId = 1;
@@ -82,6 +88,31 @@ describe('Business routes and role-based access', () => {
 
     expect(res.status).toBe(403);
     expect(res.body.message).toMatch(/not your business/i);
+  });
+
+  test('Owner can only retrieve their own business', async () => {
+    const firstOwner = await User.create({ name: 'First owner', email: 'first@test.com', password: 'Pass123!', role: 'owner' });
+    const secondOwner = await User.create({ name: 'Second owner', email: 'second@test.com', password: 'Pass123!', role: 'owner' });
+    await Business.create({ name: 'First business', code: 'FIRST', ownerId: firstOwner._id, isApproved: true });
+    const secondBusiness = await Business.create({ name: 'Second business', code: 'SECOND', ownerId: secondOwner._id, isApproved: false });
+
+    const res = await request(app)
+      .get('/api/business/my-business')
+      .set('Authorization', `Bearer ${generateToken(secondOwner)}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body._id).toBe(secondBusiness._id);
+  });
+
+  test('Owner without a business receives a 404 from my-business', async () => {
+    const owner = await User.create({ name: 'New owner', email: 'new@test.com', password: 'Pass123!', role: 'owner' });
+
+    const res = await request(app)
+      .get('/api/business/my-business')
+      .set('Authorization', `Bearer ${generateToken(owner)}`);
+
+    expect(res.status).toBe(404);
+    expect(res.body.message).toBe('No business found');
   });
 
   test('Business owner can open queue if approved -> 200', async () => {

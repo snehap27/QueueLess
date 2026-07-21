@@ -4,7 +4,8 @@ import { BarChart3, CheckCircle2, Clock3, Ticket, Users } from "lucide-react";
 import Navbar from "../components/Navbar";
 import { useAuth } from "../hooks/useAuth";
 import {
-  getBusinesses,
+  createBusiness,
+  getMyBusiness,
   getQueue,
   serveNextCustomer,
   setQueueOpen,
@@ -40,8 +41,9 @@ const statusBadgeClasses = {
 };
 
 function OwnerDashboard() {
-  const { token, user } = useAuth();
+  const { token } = useAuth();
   const [business, setBusiness] = useState(null);
+  const [noBusiness, setNoBusiness] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [isUpdatingQueue, setIsUpdatingQueue] = useState(false);
@@ -49,6 +51,8 @@ function OwnerDashboard() {
   const [queueLoading, setQueueLoading] = useState(false);
   const [isServing, setIsServing] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
+  const [businessForm, setBusinessForm] = useState({ name: "", code: "" });
+  const [isCreatingBusiness, setIsCreatingBusiness] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -58,18 +62,19 @@ function OwnerDashboard() {
       setError("");
 
       try {
-        const data = await getBusinesses(token);
-        const businesses = Array.isArray(data) ? data : [data];
-        const ownedBusiness = businesses.find(
-          (item) => item.ownerId && item.ownerId === user?.id
-        );
-
         if (isMounted) {
-          setBusiness(ownedBusiness || businesses[0] || null);
+          const data = await getMyBusiness(token);
+          setBusiness(data);
+          setNoBusiness(false);
         }
       } catch (requestError) {
         if (isMounted) {
-          setError(getErrorMessage(requestError));
+          if (/no business found/i.test(requestError.message)) {
+            setBusiness(null);
+            setNoBusiness(true);
+          } else {
+            setError(getErrorMessage(requestError));
+          }
         }
       } finally {
         if (isMounted) {
@@ -83,7 +88,31 @@ function OwnerDashboard() {
     return () => {
       isMounted = false;
     };
-  }, [token, user?.id]);
+  }, [token]);
+
+  const handleCreateBusiness = async (event) => {
+    event.preventDefault();
+    if (isCreatingBusiness) return;
+
+    setIsCreatingBusiness(true);
+    setError("");
+
+    try {
+      const data = await createBusiness(businessForm, token);
+      const ownerBusiness = await getMyBusiness(token);
+      setBusiness(ownerBusiness);
+      setNoBusiness(false);
+      setSuccessMessage(
+        data.business.isApproved
+          ? "Your business has been created successfully."
+          : "Your business has been created and is awaiting admin approval."
+      );
+    } catch (requestError) {
+      setError(getErrorMessage(requestError));
+    } finally {
+      setIsCreatingBusiness(false);
+    }
+  };
 
   useEffect(() => {
     if (!business?._id) {
@@ -255,17 +284,24 @@ function OwnerDashboard() {
                     <p className="mt-3 text-sm font-medium text-slate-500">
                       Business code: {business.code}
                     </p>
+                    {!business.isApproved && (
+                      <p className="mt-3 text-sm font-medium text-amber-700">
+                        Your business has been created and is awaiting admin approval.
+                      </p>
+                    )}
                   </div>
 
                   <button
                     type="button"
                     onClick={handleQueueToggle}
-                    disabled={isUpdatingQueue}
+                    disabled={isUpdatingQueue || !business.isApproved}
                     className="inline-flex min-w-36 items-center justify-center rounded-full bg-emerald-500 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-500/25 transition hover:-translate-y-0.5 hover:bg-emerald-600 disabled:cursor-not-allowed disabled:transform-none disabled:opacity-70"
                   >
                     {isUpdatingQueue
                       ? "Updating..."
-                      : business.queueOpen
+                      : !business.isApproved
+                        ? "Awaiting Approval"
+                        : business.queueOpen
                         ? "Close Queue"
                         : "Open Queue"}
                   </button>
@@ -393,17 +429,50 @@ function OwnerDashboard() {
                 )}
               </section>
             </>
-          ) : (
-            <section className="mt-10 rounded-[2rem] border border-emerald-100 bg-white p-8 text-center shadow-2xl shadow-emerald-950/10 sm:p-10">
+          ) : noBusiness ? (
+            <section className="mt-10 rounded-[2rem] border border-emerald-100 bg-white p-8 shadow-2xl shadow-emerald-950/10 sm:p-10">
               <Ticket className="mx-auto text-emerald-600" size={34} />
-              <h2 className="mt-5 text-2xl font-bold text-slate-950">
-                No business available
-              </h2>
-              <p className="mt-3 leading-7 text-slate-600">
-                Your business will appear here once it is available.
-              </p>
+              <div className="mx-auto mt-5 max-w-md text-center">
+                <h2 className="text-2xl font-bold text-slate-950">Create Business</h2>
+                <p className="mt-3 leading-7 text-slate-600">
+                  Set up your business to start managing its queue.
+                </p>
+              </div>
+              <form className="mx-auto mt-8 max-w-md space-y-5" onSubmit={handleCreateBusiness}>
+                <div>
+                  <label className="text-sm font-bold text-slate-700" htmlFor="business-name">
+                    Business Name
+                  </label>
+                  <input
+                    id="business-name"
+                    required
+                    value={businessForm.name}
+                    onChange={(event) => setBusinessForm((form) => ({ ...form, name: event.target.value }))}
+                    className="mt-2 w-full rounded-2xl border border-emerald-100 px-4 py-3 text-slate-900 outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-bold text-slate-700" htmlFor="business-code">
+                    Business Code
+                  </label>
+                  <input
+                    id="business-code"
+                    required
+                    value={businessForm.code}
+                    onChange={(event) => setBusinessForm((form) => ({ ...form, code: event.target.value }))}
+                    className="mt-2 w-full rounded-2xl border border-emerald-100 px-4 py-3 text-slate-900 outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={isCreatingBusiness}
+                  className="inline-flex w-full items-center justify-center rounded-full bg-emerald-500 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-500/25 transition hover:-translate-y-0.5 hover:bg-emerald-600 disabled:cursor-not-allowed disabled:transform-none disabled:opacity-70"
+                >
+                  {isCreatingBusiness ? "Creating..." : "Create Business"}
+                </button>
+              </form>
             </section>
-          )}
+          ) : null}
         </div>
       </main>
     </div>

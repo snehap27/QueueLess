@@ -1,6 +1,15 @@
 const Business = require("../models/Business");
 
+
 const createBusiness = async (req, res) => {
+  console.log(req.headers);
+  console.log(req.body);
+
+  if (!req.body) {
+    return res.status(400).json({
+      message: "Request body is missing",
+    });
+  }
   try {
     const { name, code } = req.body;
 
@@ -18,6 +27,20 @@ const createBusiness = async (req, res) => {
     res.status(500).json({
       message: error.message,
     });
+  }
+};
+
+const getMyBusiness = async (req, res) => {
+  try {
+    const business = await Business.findOne({ ownerId: req.user._id });
+
+    if (!business) {
+      return res.status(404).json({ message: "No business found" });
+    }
+
+    return res.status(200).json(business);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
   }
 };
 
@@ -119,6 +142,7 @@ const getBusinesses = async (req, res) => {
 
 module.exports = {
   createBusiness,
+  getMyBusiness,
   approveBusiness,
   openQueue,
   closeQueue,

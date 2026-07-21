@@ -9,6 +9,18 @@ export const getBusinesses = (token) =>
     headers: authenticatedHeaders(token),
   });
 
+export const getMyBusiness = (token) =>
+  request("/api/business/my-business", {
+    headers: authenticatedHeaders(token),
+  });
+
+export const createBusiness = (business, token) =>
+  request("/api/business", {
+    method: "POST",
+    headers: authenticatedHeaders(token),
+    body: JSON.stringify(business),
+  });
+
 export const joinQueue = (businessId, token) =>
   request(`/api/queue/${businessId}/join`, {
     method: "POST",
