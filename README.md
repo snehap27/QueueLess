@@ -409,11 +409,11 @@ GitHub: https://github.com/Akanksha-Singh27
 
 LinkedIn: https://www.linkedin.com/in/akanksha-singh-858020327/
 
-### Ananya Satyapal
+**Ananya Satyapal**
 - GitHub: https://github.com/...
 - LinkedIn: https://linkedin.com/in/...
 
-### Sneha Pandey
+**Sneha Pandey**
 - GitHub: https://github.com/...
 - LinkedIn: https://linkedin.com/in/...
 
