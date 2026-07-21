@@ -407,7 +407,7 @@ Indira Gandhi Delhi Technical University for Women (IGDTUW)
 
 GitHub: https://github.com/Akanksha-Singh27
 
-LinkedIn: https://linkedin.com/in/www.linkedin.com/in/akanksha-singh-858020327
+LinkedIn: https://linkedin.com/in/www.linkedin.com/in/akanksha-singh-858020327/
 
 ---
 
