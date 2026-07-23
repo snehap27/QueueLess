@@ -414,8 +414,8 @@ LinkedIn: https://www.linkedin.com/in/akanksha-singh-858020327/
 - LinkedIn: https://linkedin.com/in/...
 
 **Sneha Pandey**
-- GitHub: https://github.com/...
-- LinkedIn: https://linkedin.com/in/...
+- GitHub: https://github.com/snehap27
+- LinkedIn: https://linkedin.com/in/snehapandey27/
 
 ---
 

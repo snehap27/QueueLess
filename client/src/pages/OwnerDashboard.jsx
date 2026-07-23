@@ -87,17 +87,31 @@ function OwnerDashboard() {
     console.log("Business state changed:", business);
   }, [business]);
 
-  // Effect to load the queue whenever the business changes
-  useEffect(() => {
-    if (!business?._id) return;
-    
-    let isMounted = true;
-    loadQueue(business._id, isMounted);
-    
-    return () => {
-      isMounted = false;
-    };
-  }, [business?._id, token]);
+  // Component-scoped function to load the queue for a business
+  const loadQueue = async (businessId, isMounted = true) => {
+    if (!businessId) return;
+
+    setQueueLoading(true);
+
+    try {
+      const queue = await getQueue(businessId, token);
+      if (isMounted) {
+        setCustomers(queue.customers || []);
+      }
+    } catch (requestError) {
+      if (isMounted) {
+        if (/queue not found/i.test(requestError.message)) {
+          setCustomers([]);
+        } else {
+          setError(getErrorMessage(requestError));
+        }
+      }
+    } finally {
+      if (isMounted) {
+        setQueueLoading(false);
+      }
+    }
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -137,49 +151,16 @@ function OwnerDashboard() {
   };
 
   useEffect(() => {
-    if (!business?._id) {
-      return undefined;
-    }
+    if (!business?._id) return;
 
     let isMounted = true;
 
-    const loadQueue = async () => {
-      setQueueLoading(true);
-
-      try {
-        const queue = await getQueue(business._id, token);
-        if (isMounted) {
-          setCustomers(queue.customers || []);
-        }
-      } catch (requestError) {
-        if (isMounted) {
-          if (/queue not found/i.test(requestError.message)) {
-            setCustomers([]);
-          } else {
-            setError(getErrorMessage(requestError));
-          }
-        }
-      } finally {
-        if (isMounted) {
-          setQueueLoading(false);
-        }
-      }
-    };
-
-    loadQueue();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [business?._id, token]);
-
-  useEffect(() => {
-    if (!business?._id) return;
-
     socket.emit("joinBusinessRoom", business._id); // Join the Socket.IO room for the specific business to receive real-time updates
 
-    // async function to handle the "queueUpdated" event from the server and reload the business information
-    // await loadBusiness() is called to refresh the business data when the queue is updated
+    // Initial load of the queue
+    loadQueue(business._id, isMounted);
+
+    // Handle the "queueUpdated" event by reloading business and queue information
     const handleQueueUpdated = async () => {
       console.log("Queue updated!");
       await Promise.all([loadBusiness(), loadQueue(business._id)]); // Reload both business and queue information
@@ -189,9 +170,10 @@ function OwnerDashboard() {
     socket.on("queueUpdated", handleQueueUpdated);
 
     return () => {
+      isMounted = false;
       socket.off("queueUpdated", handleQueueUpdated);
     };
-  }, [business?._id]);
+  }, [business?._id, token]);
 
   // Function to handle the opening or closing of the queue for the business
   const handleQueueToggle = async () => {
@@ -214,12 +196,9 @@ function OwnerDashboard() {
   };
 
   const refreshQueue = async () => {
-    if (!business) {
-      return;
-    }
+    if (!business) return;
 
-    const queue = await getQueue(business._id, token);
-    setCustomers(queue.customers || []);
+    await loadQueue(business._id);
   };
 
   const handleServeNextCustomer = async () => {
