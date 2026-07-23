@@ -10,12 +10,6 @@ import {
   serveNextCustomer,
   setQueueOpen,
 } from "../services/queueService";
-import { useEffect, useState } from "react";
-import { BarChart3, CheckCircle2, Clock3, Ticket, Users, Zap } from "lucide-react";
-
-import Navbar from "../components/Navbar";
-import { useAuth } from "../hooks/useAuth";
-import { getBusinesses, setQueueOpen, getQueue, serveNextCustomer } from "../services/queueService";
 import socket from "../socket/socket";
 
 // Helper function to get a user-friendly error message based on the error type or message
@@ -63,11 +57,6 @@ function OwnerDashboard() {
   const [businessForm, setBusinessForm] = useState({ name: "", code: "" });
   const [isCreatingBusiness, setIsCreatingBusiness] = useState(false);
 
-  const queueCustomers = queue?.customers ?? [];
-  const waitingCustomers = queueCustomers.filter((customer) => customer.status === "waiting");
-  const servedCustomers = queueCustomers.filter((customer) => customer.status === "served");
-  const hasWaitingCustomers = waitingCustomers.length > 0;
-
   // Function to load the business information for the logged-in owner
   const loadBusiness = async (isMounted = true) => {
     setError("");
@@ -87,12 +76,11 @@ function OwnerDashboard() {
             setError(getErrorMessage(requestError));
           }
         }
+      } finally {
+        if (isMounted) {
+          setQueueLoading(false);
+        }
       }
-    } finally {
-      if (isMounted) {
-        setQueueLoading(false);
-      }
-    }
   };
   
   useEffect(() => {
